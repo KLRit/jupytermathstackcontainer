@@ -137,12 +137,9 @@ USER ${NB_UID}
 RUN pip install --no-cache-dir octave_kernel
 
 # --- Scilab kernel ---
-# Scilab is already installed via apt
 ENV SCILAB_EXECUTABLE=/usr/bin/scilab-cli
 RUN pip install --no-cache-dir scilab_kernel && \
-    jupyter kernelspec install --sys-prefix "$(
-      python -c "import os, scilab_kernel; print(os.path.join(os.path.dirname(scilab_kernel.__file__), 'kernelspec'))"
-    )" && \
+    jupyter kernelspec install --sys-prefix "$(python -c "import os, scilab_kernel; print(os.path.join(os.path.dirname(scilab_kernel.__file__), 'kernelspec'))")" && \
     jupyter kernelspec list || true
 
 # (optional) sanity check during build
