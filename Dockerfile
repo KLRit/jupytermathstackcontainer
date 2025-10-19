@@ -124,9 +124,11 @@ RUN apt-get update --yes && \
       gnuplot \
       texinfo \
       curl git pkg-config \
+      **gnupg xz-utils netbase make g++** \
       libtinfo-dev libzmq3-dev libgmp-dev libffi-dev zlib1g-dev \
       libcairo2-dev libpango1.0-dev libmagic-dev libblas-dev liblapack-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
 
 USER ${NB_UID}
 
@@ -135,16 +137,33 @@ USER ${NB_UID}
 RUN pip install --no-cache-dir octave_kernel
 
 # --- Scilab kernel ---
-# scilab must already be installed system-wide
+# Scilab is already installed via apt
 ENV SCILAB_EXECUTABLE=/usr/bin/scilab-cli
-RUN pip install --no-cache-dir scilab_kernel
+RUN pip install --no-cache-dir scilab_kernel && \
+    jupyter kernelspec install --sys-prefix "$(
+      python -c "import os, scilab_kernel; print(os.path.join(os.path.dirname(scilab_kernel.__file__), 'kernelspec'))"
+    )" && \
+    jupyter kernelspec list || true
 
 # (optional) sanity check during build
 RUN jupyter kernelspec list || true
 
-# --- Haskell kernel (IHaskell) via Stack as per upstream README ---
-ENV PATH="${HOME}/.local/bin:${PATH}"
-RUN curl -sSL https://get.haskellstack.org/ | sh && \
+# --- Haskell Stack (non-interactive install) ---
+USER root
+# Install stack binary without sudo prompts
+RUN curl -L https://get.haskellstack.org/stable/linux-x86_64.tar.gz \
+    | tar xz -C /tmp && \
+    mv /tmp/stack-*/stack /usr/local/bin/stack && \
+    chmod +x /usr/local/bin/stack && \
+    rm -rf /tmp/stack-*
+
+# Give Stack a writable root to speed future builds
+RUN mkdir -p /opt/stack && chown -R ${NB_UID}:${NB_GID} /opt/stack
+USER ${NB_UID}
+ENV STACK_ROOT=/opt/stack
+
+# --- IHaskell ---
+RUN stack --version && \
     git clone https://github.com/IHaskell/IHaskell /tmp/IHaskell && \
     cd /tmp/IHaskell && \
     pip install --no-cache-dir -r requirements.txt && \
@@ -152,6 +171,7 @@ RUN curl -sSL https://get.haskellstack.org/ | sh && \
     stack install --fast && \
     ihaskell install --stack --prefix=$(jupyter --data-dir) && \
     cd / && rm -rf /tmp/IHaskell
+
 
 # Optional: list kernels at build time (won't fail the build)
 RUN jupyter kernelspec list || true
