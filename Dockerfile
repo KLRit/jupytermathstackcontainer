@@ -145,30 +145,6 @@ RUN pip install --no-cache-dir scilab_kernel && \
 # (optional) sanity check during build
 RUN jupyter kernelspec list || true
 
-# --- Haskell Stack (non-interactive install) ---
-USER root
-# Install stack binary without sudo prompts
-RUN curl -L https://get.haskellstack.org/stable/linux-x86_64.tar.gz \
-    | tar xz -C /tmp && \
-    mv /tmp/stack-*/stack /usr/local/bin/stack && \
-    chmod +x /usr/local/bin/stack && \
-    rm -rf /tmp/stack-*
-
-# Give Stack a writable root to speed future builds
-RUN mkdir -p /opt/stack && chown -R ${NB_UID}:${NB_GID} /opt/stack
-USER ${NB_UID}
-ENV STACK_ROOT=/opt/stack
-
-# --- IHaskell ---
-RUN stack --version && \
-    git clone https://github.com/IHaskell/IHaskell /tmp/IHaskell && \
-    cd /tmp/IHaskell && \
-    pip install --no-cache-dir -r requirements.txt && \
-    stack setup && \
-    stack install --fast && \
-    ihaskell install --stack --prefix=$(jupyter --data-dir) && \
-    cd / && rm -rf /tmp/IHaskell
-
 
 # Optional: list kernels at build time (won't fail the build)
 RUN jupyter kernelspec list || true
