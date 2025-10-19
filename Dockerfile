@@ -132,14 +132,15 @@ USER ${NB_UID}
 
 # --- Octave kernel (Python bridge) ---
 # Needs Octave installed already
-RUN pip install --no-cache-dir octave_kernel && \
-    python -m octave_kernel install --sys-prefix
+RUN pip install --no-cache-dir octave_kernel
 
 # --- Scilab kernel ---
-# Tell scilab-kernel where to find scilab-cli
+# scilab must already be installed system-wide
 ENV SCILAB_EXECUTABLE=/usr/bin/scilab-cli
-RUN pip install --no-cache-dir scilab_kernel && \
-    python -m scilab_kernel.install --sys-prefix
+RUN pip install --no-cache-dir scilab_kernel
+
+# (optional) sanity check during build
+RUN jupyter kernelspec list || true
 
 # --- Haskell kernel (IHaskell) via Stack as per upstream README ---
 ENV PATH="${HOME}/.local/bin:${PATH}"
