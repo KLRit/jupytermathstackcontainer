@@ -124,7 +124,7 @@ RUN apt-get update --yes && \
       gnuplot \
       texinfo \
       curl git pkg-config \
-      **gnupg xz-utils netbase make g++** \
+      gnupg xz-utils netbase make g++ \
       libtinfo-dev libzmq3-dev libgmp-dev libffi-dev zlib1g-dev \
       libcairo2-dev libpango1.0-dev libmagic-dev libblas-dev liblapack-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
