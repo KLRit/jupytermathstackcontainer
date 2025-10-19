@@ -1,6 +1,4 @@
-# Combined Jupyter Stacks: Minimal + Data Science + R + Julia
-# Copyright (c) Jupyter Development Team.
-# Distributed under the terms of the Modified BSD License.
+# Combined Jupyter Stacks: Minimal + Data Science + R + Julia + (Scilab/Octave/Haskell kernels)
 ARG REGISTRY=quay.io
 ARG OWNER=jupyter
 ARG BASE_IMAGE=$REGISTRY/$OWNER/minimal-notebook
@@ -16,40 +14,23 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 USER root
 
-# ---------- System dependencies (union of all three images) ----------
+# ---------- System dependencies (union of Python DS + R + Julia) ----------
 RUN apt-get update --yes && \
     apt-get install --yes --no-install-recommends \
-    # Build tools (Python/Cython, R packages with compilation, etc.)
-    build-essential \
-    gcc \
-    gfortran \
-    # LaTeX bits for matplotlib labels/figures
-    cm-super \
-    dvipng \
-    # Animation/Video
+    build-essential gcc gfortran \
+    cm-super dvipng \
     ffmpeg \
-    # R + ODBC prerequisites
     fonts-dejavu \
-    unixodbc \
-    unixodbc-dev \
-    r-cran-rodbc && \
+    unixodbc unixodbc-dev r-cran-rodbc && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ---------- Julia setup ----------
-# Install Julia packages in /opt/julia instead of ${HOME}
 ENV JULIA_DEPOT_PATH=/opt/julia \
     JULIA_PKGDIR=/opt/julia
-
-# Setup Julia runtime (provided by base image scripts)
 RUN /opt/setup-scripts/setup_julia.py
-
-# macOS Rosetta virtualization creates junk directory which gets owned by root further up.
-# More info: https://github.com/jupyter/docker-stacks/issues/2296
 RUN rm -rf "/home/${NB_USER}/.cache/"
 
 USER ${NB_UID}
-
-# Setup IJulia kernel & core Julia packages
 RUN /opt/setup-scripts/setup-julia-packages.bash
 
 # ---------- Python Data Science Stack ----------
@@ -88,24 +69,23 @@ RUN mamba install --yes \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
 
-# Install passagemath-standard (not available on conda-forge)
+# Extra python package requested earlier
 RUN pip install --no-cache-dir passagemath-standard && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
 
-# Install facets (no pip/conda package available)
+# facets
+USER ${NB_UID}
 WORKDIR /tmp
 RUN git clone https://github.com/PAIR-code/facets && \
     jupyter nbclassic-extension install facets/facets-dist/ --sys-prefix && \
     rm -rf /tmp/facets && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
-
-# Pre-build matplotlib font cache
 RUN MPLBACKEND=Agg python -c "import matplotlib.pyplot" && \
     fix-permissions "/home/${NB_USER}"
 
-# ---------- R stack via mamba (includes IRkernel) ----------
+# ---------- R stack (IRkernel, tidyverse, etc.) ----------
 USER root
 RUN rm -rf "/home/${NB_USER}/.cache/"
 USER ${NB_UID}
@@ -134,7 +114,48 @@ RUN mamba install --yes \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
 
-# Final cache cleanup (Rosetta note as above)
+# ---------- Extra kernels: Scilab, GNU Octave, Haskell (IHaskell) ----------
+USER root
+# System packages for Scilab, Octave, and IHaskell (ZeroMQ, etc.)
+RUN apt-get update --yes && \
+    apt-get install --yes --no-install-recommends \
+      scilab \
+      octave \
+      gnuplot \
+      texinfo \
+      curl git pkg-config \
+      libtinfo-dev libzmq3-dev libgmp-dev libffi-dev zlib1g-dev \
+      libcairo2-dev libpango1.0-dev libmagic-dev libblas-dev liblapack-dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+USER ${NB_UID}
+
+# --- Octave kernel (Python bridge) ---
+# Needs Octave installed already
+RUN pip install --no-cache-dir octave_kernel && \
+    python -m octave_kernel install --sys-prefix
+
+# --- Scilab kernel ---
+# Tell scilab-kernel where to find scilab-cli
+ENV SCILAB_EXECUTABLE=/usr/bin/scilab-cli
+RUN pip install --no-cache-dir scilab_kernel && \
+    python -m scilab_kernel.install --sys-prefix
+
+# --- Haskell kernel (IHaskell) via Stack as per upstream README ---
+ENV PATH="${HOME}/.local/bin:${PATH}"
+RUN curl -sSL https://get.haskellstack.org/ | sh && \
+    git clone https://github.com/IHaskell/IHaskell /tmp/IHaskell && \
+    cd /tmp/IHaskell && \
+    pip install --no-cache-dir -r requirements.txt && \
+    stack setup && \
+    stack install --fast && \
+    ihaskell install --stack --prefix=$(jupyter --data-dir) && \
+    cd / && rm -rf /tmp/IHaskell
+
+# Optional: list kernels at build time (won't fail the build)
+RUN jupyter kernelspec list || true
+
+# Final cache cleanup
 USER root
 RUN rm -rf "/home/${NB_USER}/.cache/"
 USER ${NB_UID}
