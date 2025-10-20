@@ -1,3 +1,4 @@
+# Based on 'Jupyter Docker Stacks'. Partly AI-generated.
 # Combined Jupyter Stacks: Minimal + Data Science + R + Julia + (Scilab/Octave/Haskell kernels)
 ARG REGISTRY=quay.io
 ARG OWNER=jupyter
@@ -32,6 +33,8 @@ RUN rm -rf "/home/${NB_USER}/.cache/"
 
 USER ${NB_UID}
 RUN /opt/setup-scripts/setup-julia-packages.bash
+
+
 
 # ---------- Python Data Science Stack ----------
 RUN mamba install --yes \
@@ -69,10 +72,19 @@ RUN mamba install --yes \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
 
-# Extra python package requested earlier
+# SAGEMATH (Passagemath pip install)
 RUN pip install --no-cache-dir passagemath-standard && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
+
+# Extra python packages 
+RUN pip --no-cache-dir install \
+      numpy \
+      jax \
+      optax \
+      flax \
+      tqdm
+
 
 # facets
 USER ${NB_UID}
@@ -114,12 +126,11 @@ RUN mamba install --yes \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
 
-# ---------- Extra kernels: Scilab, GNU Octave, Haskell (IHaskell) ----------
+# ---------- GNU Octave ----------
 USER root
-# System packages for Scilab, Octave, and IHaskell (ZeroMQ, etc.)
+# System packages for Octave
 RUN apt-get update --yes && \
     apt-get install --yes --no-install-recommends \
-      scilab \
       octave \
       gnuplot \
       texinfo \
@@ -136,18 +147,10 @@ USER ${NB_UID}
 # Needs Octave installed already
 RUN pip install --no-cache-dir octave_kernel
 
-# --- Scilab kernel ---
-ENV SCILAB_EXECUTABLE=/usr/bin/scilab-cli
-RUN pip install --no-cache-dir scilab_kernel && \
-    jupyter kernelspec install --sys-prefix "$(python -c "import os, scilab_kernel; print(os.path.join(os.path.dirname(scilab_kernel.__file__), 'kernelspec'))")" && \
-    jupyter kernelspec list || true
 
-# (optional) sanity check during build
+# sanity check during build
 RUN jupyter kernelspec list || true
 
-
-# Optional: list kernels at build time (won't fail the build)
-RUN jupyter kernelspec list || true
 
 # Final cache cleanup
 USER root
