@@ -28,8 +28,10 @@ RUN set -eux; \
 
 # Register the Sage kernel (run as the notebook user)
 USER ${NB_UID}
-RUN conda activate sage && \
-      jupyter kernelspec install --user $(sage -sh -c 'ls -d $SAGE_VENV/share/jupyter/kernels/sagemath') --name sagemath
+RUN bash -lc 'eval "$(/opt/conda/bin/conda shell.bash hook)" \
+  && conda activate sage \
+  && KDIR="$(sage -sh -c "ls -d \$SAGE_VENV/share/jupyter/kernels/sagemath")" \
+  && jupyter kernelspec install --user "$KDIR" --name sagemath-dev'
 
 # Final tidy
 USER root
