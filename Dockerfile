@@ -28,8 +28,8 @@ RUN set -eux; \
 
 # Register the Sage kernel (run as the notebook user)
 USER ${NB_UID}
-RUN conda run -n sage sage -python -m ipykernel install --user \
-      --name "sage" --display-name "SageMath (Py 3.11)"
+RUN conda activate sage && \
+      jupyter kernelspec install --user $(sage -sh -c 'ls -d $SAGE_VENV/share/jupyter/kernels/sagemath') --name sagemath
 
 # Final tidy
 USER root
