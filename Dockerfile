@@ -15,6 +15,8 @@ USER root
 ENV CONDA_DIR=/opt/conda
 ENV PATH="${CONDA_DIR}/bin:${PATH}"
 
+
+
 RUN set -eux; \
     # Keep solves deterministic-ish and fast
     "${CONDA_DIR}/bin/conda" config --set channel_priority strict; \
@@ -26,12 +28,80 @@ RUN set -eux; \
     "${CONDA_DIR}/bin/conda" clean -afy; \
     chown -R ${NB_UID}:${NB_GID} "${CONDA_DIR}"
 
+
+# From SageMath installation documentation
 # Register the Sage kernel (run as the notebook user)
 USER ${NB_UID}
 RUN bash -lc 'eval "$(/opt/conda/bin/conda shell.bash hook)" \
   && conda activate sage \
   && KDIR="$(sage -sh -c "ls -d \$SAGE_VENV/share/jupyter/kernels/sagemath")" \
   && jupyter kernelspec install --user "$KDIR" --name sagemath-dev'
+  
+
+# sanity check during build
+RUN jupyter kernelspec list || true
+
+# Extra python packages for Python Kernel
+RUN pip --no-cache-dir install \
+      numpy \
+      sympy \
+      scipy \
+      tqdm
+
+# ---------- R stack (IRkernel, tidyverse, etc.) ----------
+USER root
+RUN rm -rf "/home/${NB_USER}/.cache/"
+USER ${NB_UID}
+RUN mamba install --yes \
+    'r-base' \
+    'r-caret' \
+    'r-crayon' \
+    'r-devtools' \
+    'r-e1071' \
+    'r-forecast' \
+    'r-hexbin' \
+    'r-htmltools' \
+    'r-htmlwidgets' \
+    'r-irkernel' \
+    'r-nycflights13' \
+    'r-randomforest' \
+    'r-rcurl' \
+    'r-rmarkdown' \
+    'r-rodbc' \
+    'r-rsqlite' \
+    'r-shiny' \
+    'r-tidymodels' \
+    'r-tidyverse' \
+    'unixodbc' && \
+    mamba clean --all -f -y && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
+
+# ---------- GNU Octave ----------
+USER root
+# System packages for Octave
+RUN apt-get update --yes && \
+    apt-get install --yes --no-install-recommends \
+      octave \
+      gnuplot \
+      texinfo \
+      curl git pkg-config \
+      gnupg xz-utils netbase make g++ \
+      libtinfo-dev libzmq3-dev libgmp-dev libffi-dev zlib1g-dev \
+      libcairo2-dev libpango1.0-dev libmagic-dev libblas-dev liblapack-dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+
+USER ${NB_UID}
+
+# --- Octave kernel (Python bridge) ---
+# Needs Octave installed already
+RUN pip install --no-cache-dir octave_kernel
+
+
+# sanity check during build
+RUN jupyter kernelspec list || true
+
 
 # Final tidy
 USER root
