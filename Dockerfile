@@ -50,9 +50,8 @@ RUN pip --no-cache-dir install \
 
 # ---------- R stack (IRkernel, tidyverse, etc.) ----------
 USER root
-RUN rm -rf "/home/${NB_USER}/.cache/"
-USER ${NB_UID}
-RUN mamba install --yes \
+RUN set -eux; \
+    mamba install --yes \
     'r-base' \
     'r-caret' \
     'r-crayon' \
@@ -76,6 +75,11 @@ RUN mamba install --yes \
     mamba clean --all -f -y && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
+
+# Register IRkernel for the notebook user
+USER ${NB_UID}
+RUN R -q -e "IRkernel::installspec(user = TRUE)"
+
 
 # ---------- GNU Octave ----------
 USER root
