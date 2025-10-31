@@ -9,11 +9,11 @@ on:
   schedule:
     - cron: '34 19 * * *'
   push:
-    branches: [ "TestSageMinimal" ]
+    branches: [ "TestSageROctave" ]
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
   pull_request:
-    branches: [ "TestSageMinimal" ]
+    branches: [ "TestSageROctave" ]
 
 env:
   # Use docker.io for Docker Hub if empty
