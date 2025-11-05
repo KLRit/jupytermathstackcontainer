@@ -25,3 +25,8 @@ change the password it by running
       
 inside a notebook code cell (python/sage kernel) and replacing the hashed password string in the above docker run command.
 
+## License
+
+This repository contains only a Dockerfile and setup instructions.  
+All included software and base images remain under their respective original licenses.  
+No additional license applies to this repository.
