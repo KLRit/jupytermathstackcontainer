@@ -1,6 +1,6 @@
 Jupyter Notebook Server in a container with some specific Kernels.
 
-Docker image based on [Jupyter-Docker-Stacks](#https://jupyter-docker-stacks.readthedocs.io/en/latest/) minimal-notebook image
+Docker image based on [Jupyter-Docker-Stacks](#https://jupyter-docker-stacks.readthedocs.io/en/latest/) minimal-notebook image.
 The base image from the Jupyter-Docker-Stacks Project already includes Utilities like PDF-Conversion of Notebooks.  
 
 This image additionally Installs 
