@@ -24,7 +24,7 @@ change the password it by running
       from jupyter_server.auth import passwd; passwd()
       
 inside a notebook code cell (python/sage kernel) and replacing the hashed password string in the above docker run command.
-Use a random password and save it in your browser, this is only for additional security against non-local access.
+Use a random password and save it in your browser, this password is only for additional security against non-local access.
 
 ## License
 
