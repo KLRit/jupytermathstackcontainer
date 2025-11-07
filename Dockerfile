@@ -1,4 +1,4 @@
-# Combined Jupyter Stacks: Minimal + Data Science + R + Julia
+# Combined Jupyter Stacks: Minimal + R 
 ARG REGISTRY=quay.io
 ARG OWNER=jupyter
 ARG BASE_IMAGE=$REGISTRY/$OWNER/minimal-notebook
